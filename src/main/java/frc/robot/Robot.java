@@ -5,6 +5,7 @@
 package frc.robot;
 
 import edu.wpi.first.cameraserver.CameraServer;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -60,7 +61,7 @@ public class Robot extends TimedRobot {
   private static final double SPINUP_Left_Voltage = 1;
   private static final double SPINUP_Right_Voltage = -6;
   private static final double SPINUP_Seconds = 1;
-  private static final double SHOOT_Seconds = 9; //this is includes the SPINUP time for an actual (SHOOT minus SPINUP) seconds
+  private static final double SHOOT_Seconds = 5; //this is includes the SPINUP time for an actual (SHOOT minus SPINUP) seconds
   
   //-----------------------drive speed parameters--------------------------------------------------------
   private double driveSpeed = 1;
@@ -75,9 +76,8 @@ public class Robot extends TimedRobot {
 
     m_chooser.setDefaultOption("Default: Backup from Hub and then Launch", kDefaultAuto);
     m_chooser.addOption("Launch from either Side", kLaunchFromEitherSide);
- //   m_chooser.addOption("Launch from Right side and go to Feeder", kLaunchRight);
-  //          ]]\ =
-      m_chooser.addOption("Launch from Left side and go to Floor bin", kLaunchLeft);
+    m_chooser.addOption("Launch from Right side and go to Feeder", kLaunchRight);
+    m_chooser.addOption("Launch from Left side and go to Floor bin", kLaunchLeft);
 
     SmartDashboard.putData("Auto choices", m_chooser);
 
