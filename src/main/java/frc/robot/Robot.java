@@ -5,6 +5,8 @@
 package frc.robot;
 
 import edu.wpi.first.cameraserver.CameraServer;
+import edu.wpi.first.wpilibj.AddressableLED;
+import edu.wpi.first.wpilibj.AddressableLEDBuffer;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
@@ -80,6 +82,15 @@ public class Robot extends TimedRobot {
     m_chooser.addOption("Launch from Left side and go to Floor bin", kLaunchLeft);
 
     SmartDashboard.putData("Auto choices", m_chooser);
+
+    AddressableLED m_led = new AddressableLED(1);
+
+    AddressableLEDBuffer m_ledBuffer = new AddressableLEDBuffer(100); // change later
+    m_led.setLength(m_ledBuffer.getLength());
+
+    m_led.setData(m_ledBuffer);
+    m_led.start();
+
 
     //------------------Drive Configs------------------------
     SparkMaxConfig driveConfig = new SparkMaxConfig();
@@ -260,12 +271,12 @@ public class Robot extends TimedRobot {
   public void teleopPeriodic() {
   //---------------------------------Drive Mechanisme...Driver...............................................
     if(driverController.getLeftBumperButton()){  // slow mode
-      driveSpeed = .8;
-      rotateSpeed = .7;
+      driveSpeed = 0.4;
+      rotateSpeed = .4;
     }
-    else if(driverController.getRightBumperButton()){ // fast mode
-      driveSpeed = 1;
-      rotateSpeed = 1;
+    else {
+      driveSpeed = 0.7;
+      rotateSpeed = 0.6;
     }
 
     if (driverController.getAButtonPressed()) {
@@ -273,9 +284,9 @@ public class Robot extends TimedRobot {
     }
 
     if (isTankMode) {
-          myDrive.tankDrive(driverController.getLeftY(), driverController.getRightY());
+          myDrive.tankDrive(driverController.getLeftY() * driveSpeed, driverController.getRightY() * driveSpeed);
     } else {
-      myDrive.arcadeDrive(driverController.getLeftY(), driverController.getLeftX() * rotateSpeed);
+      myDrive.arcadeDrive(driverController.getLeftY() * driveSpeed, driverController.getLeftX() * rotateSpeed);
     }
 
 
@@ -293,7 +304,7 @@ public class Robot extends TimedRobot {
       rightBinIntakeExpel.setVoltage(LAUNCHING_Right_Voltage);
       }
     }
-    else if(opController.getLeftBumperButton()){ // press A toggle to Intake fuel from Floor
+    else if(opController.getAButton()){ // press A toggle to Intake fuel from Floor
       leftIntakeShootExpel.setVoltage(INTAKING_Left_Voltage);
       rightBinIntakeExpel.setVoltage(INTAKING_Right_Voltage);
     }
