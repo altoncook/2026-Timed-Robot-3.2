@@ -4,6 +4,8 @@
 
 package frc.robot;
 
+import static edu.wpi.first.units.Units.Seconds;
+
 import com.revrobotics.PersistMode;
 import com.revrobotics.ResetMode;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
@@ -47,6 +49,8 @@ public class Robot extends TimedRobot {
   private final Timer autoTimer = new Timer();
   private final Timer spinUpTimer = new Timer();
 
+  private static final double LEDBlinkingRate = 1; // one second blinking rate for arcade drive
+
   private final LEDPattern red = LEDPattern.solid(Color.kGreen); //green red invert, used for default 
   private final LEDPattern green = LEDPattern.solid(Color.kRed); //green red invert, used for left 
   private final LEDPattern blue = LEDPattern.solid(Color.kBlue); //green red invert, used for launch right
@@ -78,7 +82,7 @@ public class Robot extends TimedRobot {
   private double rotateSpeed = 1;
 
   /**
-   * This function is run when the rBKJHKJobot is first started up and should be used for any
+   * This function is run when the robot is first started up and should be used for any
    * initialization code.
    */
   public Robot() {
@@ -164,7 +168,7 @@ public class Robot extends TimedRobot {
     updateLEDsAndSelected();
    // m_autoSelected = m_chooser.getSelected();
     // m_autoSelected = SmartDashboard.getString("Auto Selector", kDefaultAuto);
-    System.out.println("Final auto selection: " + m_autoSelected);
+    System.out.println("Final auto mode selection: " + m_autoSelected);
 
     autoTimer.start();
     autoTimer.reset();
@@ -301,8 +305,8 @@ public class Robot extends TimedRobot {
       rotateSpeed = .7;
     }
     else if(driverController.getRightBumperButton()){ // fast mode
-      driveSpeed = 1;
-      rotateSpeed = 1;
+      driveSpeed = 0.8;
+      rotateSpeed = 0.8;
     }
 
    if (m_controllerSelected == kControllerTank) { //get value that is set from smartDashBoard
@@ -310,8 +314,6 @@ public class Robot extends TimedRobot {
    } else {
     myDrive.arcadeDrive(driverController.getLeftY() * driveSpeed, driverController.getLeftX() * rotateSpeed);
    }
-
-
 
   //---------------------------------Fuel Mechanism...Fuel Operator----------------------------------------
     if(opController.getRightBumperButton()){ // press Right Bumper to launch fuel
@@ -463,34 +465,46 @@ public class Robot extends TimedRobot {
   }
 
   public void updateLEDsAndSelected() {
-    if (m_autoSelected == m_chooser.getSelected()) { // if auto mode changes
+    if (m_autoSelected != m_chooser.getSelected() || m_controllerSelected != m_controllerChooser.getSelected()) { // if any mode changes
       m_autoSelected = m_chooser.getSelected(); 
-      System.out.println("Auto selected: " + m_autoSelected);
-      switch (m_autoSelected) {
-        case kLaunchRight:
-          green.applyTo(m_ledBuffer);
-          break;
-        case kLaunchLeft:
-          blue.applyTo(m_ledBuffer);
-          break;
-        case kLaunchFromEitherSide:
-          purple.applyTo(m_ledBuffer);
-          break;
-        default:
-          red.applyTo(m_ledBuffer);
-          break;
-      }
-    }
-    if (m_controllerSelected == m_controllerChooser.getSelected()) { // if controller mode changes
       m_controllerSelected = m_controllerChooser.getSelected();
-       System.out.println("Controller mode selected: " + m_controllerSelected); 
-      switch (m_controllerSelected) {
-        case kControllerTank:
-        // add blinking
-          break;
-        default:
-          break;
+      System.out.println("Auto mode selected: " + m_autoSelected);
+      System.out.println("Controller mode selected: " + m_controllerSelected); 
+      if (m_controllerSelected == kControllerArcade) { // if controller is arcade, start blinking
+        LEDPattern pattern;
+        switch (m_autoSelected) {
+          case kLaunchRight:
+            pattern = green.blink(Seconds.of(LEDBlinkingRate));
+            break;
+          case kLaunchLeft:
+            pattern = blue.blink(Seconds.of(LEDBlinkingRate));
+            break;
+          case kLaunchFromEitherSide:
+            pattern = purple.blink(Seconds.of(LEDBlinkingRate));
+            break;
+          default:
+            pattern = red.blink(Seconds.of(LEDBlinkingRate));
+            break;
+        }
+        pattern.applyTo(m_ledBuffer);
+
+      } else { // if controller is tank, don't blink
+        switch (m_autoSelected) {
+          case kLaunchRight:
+            green.applyTo(m_ledBuffer);
+            break;
+          case kLaunchLeft:
+            blue.applyTo(m_ledBuffer);
+            break;
+          case kLaunchFromEitherSide:
+            purple.applyTo(m_ledBuffer);
+            break;
+          default:
+            red.applyTo(m_ledBuffer);
+            break;
+        }
       }
     }
   }
 }
+
