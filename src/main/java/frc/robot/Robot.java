@@ -4,6 +4,10 @@
 
 package frc.robot;
 
+import static edu.wpi.first.units.Units.Inches;
+import static edu.wpi.first.units.Units.InchesPerSecond;
+import static edu.wpi.first.units.Units.Percent;
+import static edu.wpi.first.units.Units.Second;
 import static edu.wpi.first.units.Units.Seconds;
 
 import com.revrobotics.PersistMode;
@@ -19,6 +23,7 @@ import edu.wpi.first.wpilibj.LEDPattern;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.XboxController;
+import edu.wpi.first.wpilibj.LEDPattern.GradientType;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -49,12 +54,14 @@ public class Robot extends TimedRobot {
   private final Timer autoTimer = new Timer();
   private final Timer spinUpTimer = new Timer();
 
-  private static final double LEDBlinkingRate = 1; // one second blinking rate for arcade drive
+  private static final double LEDBlinkingRate = 2; // two second blinking rate for arcade drive
 
-  private final LEDPattern red = LEDPattern.solid(Color.kGreen); //green red invert, used for default 
-  private final LEDPattern green = LEDPattern.solid(Color.kRed); //green red invert, used for left 
+  private final LEDPattern red = LEDPattern.solid(Color.kGreen); //green red invert, used for launch default 
+  private final LEDPattern green = LEDPattern.solid(Color.kRed); //green red invert, used for launch left 
   private final LEDPattern blue = LEDPattern.solid(Color.kBlue); //green red invert, used for launch right
   private final LEDPattern purple = LEDPattern.solid(Color.kCyan); //green red invert, used for launch either side
+  private final LEDPattern scrollCyanPurple = LEDPattern.gradient(GradientType.kDiscontinuous, Color.kPurple, Color.kCyan)
+    .scrollAtRelativeSpeed(Percent.per(Second).of(25)); //green red invert, used for teleop
 
   private AddressableLEDBuffer m_ledBuffer;
   private AddressableLED m_led;
@@ -287,10 +294,14 @@ public class Robot extends TimedRobot {
   /** This function is called once when teleop is enabled. */
   @Override
   public void teleopInit() {
-    updateLEDsAndSelected();
-    // m_controllerSelected = m_controllerChooser.getSelected();
+    m_controllerSelected = m_controllerChooser.getSelected();
     // m_autoSelected = SmartDashboard.getString("Auto Selector", kDefaultAuto);
     System.out.println("Final Controller mode selection: " + m_controllerSelected);
+    if (m_autoSelected == kControllerArcade) {
+        scrollCyanPurple.blink(Seconds.of(LEDBlinkingRate)).applyTo(m_ledBuffer);
+    } else {
+      scrollCyanPurple.applyTo(m_ledBuffer);
+    }
     
     autoTimer.stop();
     spinUpTimer.start();
