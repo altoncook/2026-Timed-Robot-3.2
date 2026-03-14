@@ -10,6 +10,8 @@ import static edu.wpi.first.units.Units.Percent;
 import static edu.wpi.first.units.Units.Second;
 import static edu.wpi.first.units.Units.Seconds;
 
+import java.lang.ModuleLayer.Controller;
+
 import com.revrobotics.PersistMode;
 import com.revrobotics.ResetMode;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
@@ -17,8 +19,10 @@ import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.SparkMaxConfig;
 
 import edu.wpi.first.cameraserver.CameraServer;
+import edu.wpi.first.units.measure.Dimensionless;
 import edu.wpi.first.wpilibj.AddressableLED;
 import edu.wpi.first.wpilibj.AddressableLEDBuffer;
+import edu.wpi.first.wpilibj.AddressableLEDBufferView;
 import edu.wpi.first.wpilibj.LEDPattern;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
@@ -30,8 +34,10 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.util.Color;
 
 /**
- * The methods in this class are called automatically corresponding to each mode, as described in
- * the TimedRobot documentation. If you change the name of this class or the package after creating
+ * The methods in this class are called automatically corresponding to each
+ * mode, as described in
+ * the TimedRobot documentation. If you change the name of this class or the
+ * package after creating
  * this project, you must also update the Main.java file in the project.
  */
 public class Robot extends TimedRobot {
@@ -49,19 +55,32 @@ public class Robot extends TimedRobot {
   private final SparkMax rightBinIntakeExpel = new SparkMax(3, MotorType.kBrushed);
   private final SparkMax leftIntakeShootExpel = new SparkMax(2, MotorType.kBrushed);
 
-  private final DifferentialDrive myDrive = new DifferentialDrive(leftForwardDriveLead,rightForwardDriveLead);
+  private final DifferentialDrive myDrive = new DifferentialDrive(leftForwardDriveLead, rightForwardDriveLead);
 
   private final Timer autoTimer = new Timer();
   private final Timer spinUpTimer = new Timer();
 
   private static final double LEDBlinkingRate = 2; // two second blinking rate for arcade drive
+  private static final int LEDBrightness = 30; // in percent
 
- // private final LEDPattern red = LEDPattern.solid(Color.kGreen); //green red invert, used for launch default 
- // private final LEDPattern green = LEDPattern.solid(Color.kRed); //green red invert, used for launch left 
- // private final LEDPattern blue = LEDPattern.solid(Color.kBlue); //green red invert, used for launch right
- // private final LEDPattern purple = LEDPattern.solid(Color.kCyan); //green red invert, used for launch either side
- // private final LEDPattern scrollCyanPurple = LEDPattern.gradient(GradientType.kDiscontinuous, Color.kPurple, Color.kCyan)
- //   .scrollAtRelativeSpeed(Percent.per(Second).of(25)); //green red invert, used for teleop
+  private final LEDPattern red = LEDPattern.solid(Color.kGreen)
+      .atBrightness(Dimensionless.ofRelativeUnits(LEDBrightness, Percent)); // green red invert, used for launch default
+  private final LEDPattern green = LEDPattern.solid(Color.kRed)
+      .atBrightness(Dimensionless.ofRelativeUnits(LEDBrightness, Percent)); // green red invert, used for launch left
+  private final LEDPattern blue = LEDPattern.solid(Color.kBlue)
+      .atBrightness(Dimensionless.ofRelativeUnits(LEDBrightness, Percent)); // green red invert, used for launch right
+  private final LEDPattern purple = LEDPattern.solid(Color.kCyan)
+      .atBrightness(Dimensionless.ofRelativeUnits(LEDBrightness, Percent)); // green red invert, used for launch either
+                                                                            // side
+  private final LEDPattern scrollRainbow = LEDPattern.rainbow(255, 128)
+      .scrollAtRelativeSpeed(Percent.per(Second).of(25))
+      .atBrightness(Dimensionless.ofRelativeUnits(LEDBrightness, Percent)); // green red invert, used for teleop
+
+  private final LEDPattern redBlink = red.blink(Seconds.of(LEDBlinkingRate));
+  private final LEDPattern greenBlink = green.blink(Seconds.of(LEDBlinkingRate));
+  private final LEDPattern blueBlink = blue.blink(Seconds.of(LEDBlinkingRate));
+  private final LEDPattern purpleBlink = purple.blink(Seconds.of(LEDBlinkingRate));
+  private final LEDPattern scrollRainbowBlink = scrollRainbow.blink(Seconds.of(LEDBlinkingRate));
 
   private AddressableLEDBuffer m_ledBuffer;
   private AddressableLED m_led;
@@ -74,22 +93,23 @@ public class Robot extends TimedRobot {
   private final XboxController driverController = new XboxController(0);
   private final XboxController opController = new XboxController(1);
 
-  //--------------------------Intake/Feeder/Launcher Parameters--------------------------------------
-  private static final double INTAKING_Left_Voltage = - 9;
-  private static final double INTAKING_Right_Voltage = - 12;
-  private static final double LAUNCHING_Left_Voltage = - 10.6;
-  private static final double LAUNCHING_Right_Voltage = 9; 
+  // --------------------------Intake/Feeder/Launcher Parameters--------------------------------------
+  private static final double INTAKING_Left_Voltage = -9;
+  private static final double INTAKING_Right_Voltage = -12;
+  private static final double LAUNCHING_Left_Voltage = -10.6;
+  private static final double LAUNCHING_Right_Voltage = 9;
   private static final double SPINUP_Left_Voltage = 1;
   private static final double SPINUP_Right_Voltage = -6;
   private static final double SPINUP_Seconds = 1;
-  private static final double SHOOT_Seconds = 5; //this is includes the SPINUP time for an actual (SHOOT minus SPINUP) seconds
-  
-  //-----------------------drive speed parameters--------------------------------------------------------
+  private static final double SHOOT_Seconds = 5; // this is includes the SPINUP time for an actual (SHOOT minus SPINUP) seconds
+
+  // -----------------------drive speed parameters--------------------------------------------------------
   private double driveSpeed = 1;
   private double rotateSpeed = 1;
 
-  /**
-   * This function is run when the robot is first started up and should be used for any
+  /*
+   * This function is run when the robot is first started up and should be used
+   * for any
    * initialization code.
    */
   public Robot() {
@@ -108,22 +128,22 @@ public class Robot extends TimedRobot {
     SmartDashboard.putData("Controller choices", m_controllerChooser);
 
     // PWM port 1
-    // Must be a PWM header, not MXP or DIO, the LED strip that we use has a grb setup and not a rgb setup, so flip green and red values
-   // m_led = new AddressableLED(0);
+    // Must be a PWM header, not MXP or DIO, the LED strip that we use has a grb
+    // setup and not a rgb setup, so flip green and red values
+    m_led = new AddressableLED(1);
 
     // Reuse buffer
-    // Default to a length of 60, start empty output
+    // Default to a length of 92, start empty output
     // Length is expensive to set, so only set it once, then just update data
-   // m_ledBuffer = new AddressableLEDBuffer(60);
-   // m_led.setLength(m_ledBuffer.getLength());
+    m_ledBuffer = new AddressableLEDBuffer(92);
+
+    m_led.setLength(m_ledBuffer.getLength());
 
     // Set the data
-   // m_led.setData(m_ledBuffer);
-   // m_led.start();
+    m_led.setData(m_ledBuffer);
+    m_led.start();
 
-    
-
-    //------------------Drive Configs------------------------
+    // ------------------Drive Configs------------------------
     SparkMaxConfig driveConfig = new SparkMaxConfig();
     driveConfig.voltageCompensation(12);
     driveConfig.smartCurrentLimit(60);
@@ -139,7 +159,7 @@ public class Robot extends TimedRobot {
     driveConfig.inverted(true);
     rightForwardDriveLead.configure(driveConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
 
-    //--------------------Shooter Configs-------------------------------------
+    // --------------------Shooter Configs-------------------------------------
     SparkMaxConfig leftConfig = new SparkMaxConfig();
     leftConfig.smartCurrentLimit(60);
     leftConfig.inverted(false);
@@ -151,31 +171,39 @@ public class Robot extends TimedRobot {
   }
 
   /**
-   * This function is called every 20 ms, no matter the mode. Use this for items like diagnostics
+   * This function is called every 20 ms, no matter the mode. Use this for items
+   * like diagnostics
    * that you want ran during disabled, autonomous, teleoperated and test.
    *
-   * <p>This runs after the mode specific periodic functions, but before LiveWindow and
+   * <p>
+   * This runs after the mode specific periodic functions, but before LiveWindow
+   * and
    * SmartDashboard integrated updating.
    */
   @Override
-  public void robotPeriodic() {}
+  public void robotPeriodic() {
+  }
 
   /**
-   * This autonomous (along with the chooser code above) shows how to select between different
-   * autonomous modes using the dashboard. The sendable chooser code works with the Java
-   * SmartDashboard. If you prefer the LabVIEW Dashboard, remove all of the chooser code and
-   * uncomment the getString line to get the auto name from the text box below the Gyro
+   * This autonomous (along with the chooser code above) shows how to select
+   * between different
+   * autonomous modes using the dashboard. The sendable chooser code works with
+   * the Java
+   * SmartDashboard. If you prefer the LabVIEW Dashboard, remove all of the
+   * chooser code and
+   * uncomment the getString line to get the auto name from the text box below the
+   * Gyro
    *
-   * <p>You can add additional auto modes by adding additional comparisons to the switch structure
-   * below with additional strings. If using the SendableChooser make sure to add them to the
+   * <p>
+   * You can add additional auto modes by adding additional comparisons to the
+   * switch structure
+   * below with additional strings. If using the SendableChooser make sure to add
+   * them to the
    * chooser code above as well.
    */
   @Override
   public void autonomousInit() {
-    updateLEDsAndSelected();
-   // m_autoSelected = m_chooser.getSelected();
-    // m_autoSelected = SmartDashboard.getString("Auto Selector", kDefaultAuto);
-    System.out.println("Final auto mode selection: " + m_autoSelected);
+    updateSelected();
 
     autoTimer.start();
     autoTimer.reset();
@@ -184,79 +212,67 @@ public class Robot extends TimedRobot {
   /** This function is called periodically during autonomous. */
   @Override
   public void autonomousPeriodic() {
+    updateLEDS();
     switch (m_autoSelected) {
       case kLaunchRight: // Routine: Launch from Right side then turn and go to Human Feeder
-        if(autoTimer.get() < SPINUP_Seconds){//Spinup the Launcher
+        if (autoTimer.get() < SPINUP_Seconds) {// Spinup the Launcher
           leftIntakeShootExpel.setVoltage(LAUNCHING_Left_Voltage);
           rightBinIntakeExpel.setVoltage(SPINUP_Right_Voltage);
-        }
-        else if(autoTimer.get() < SHOOT_Seconds){//Shoot
+        } else if (autoTimer.get() < SHOOT_Seconds) {// Shoot
           leftIntakeShootExpel.setVoltage(LAUNCHING_Left_Voltage);
           rightBinIntakeExpel.setVoltage(LAUNCHING_Right_Voltage);
-        }
-        else if(autoTimer.get() < SHOOT_Seconds + 1){//Move away from Hub
+        } else if (autoTimer.get() < SHOOT_Seconds + 1) {// Move away from Hub
           leftIntakeShootExpel.setVoltage(0);
           rightBinIntakeExpel.setVoltage(0);
           myDrive.tankDrive(.7, .7);
-        }
-        else if(autoTimer.get() < SHOOT_Seconds + 1.5){//Turn to Feeder
+        } else if (autoTimer.get() < SHOOT_Seconds + 1.5) {// Turn to Feeder
           leftIntakeShootExpel.setVoltage(0);
           rightBinIntakeExpel.setVoltage(0);
           myDrive.tankDrive(-.4, .4);
-        }
-        else if(autoTimer.get() < SHOOT_Seconds + 3){//Move to Feeder
+        } else if (autoTimer.get() < SHOOT_Seconds + 3) {// Move to Feeder
           leftIntakeShootExpel.setVoltage(0);
           rightBinIntakeExpel.setVoltage(0);
-
           myDrive.tankDrive(.7, .7);
-        }
-        else{
+        } else {
           leftIntakeShootExpel.setVoltage(0);
           rightBinIntakeExpel.setVoltage(0);
         }
         break;
 
       case kLaunchLeft: // Routine: Launch from Right side then turn and go to Human Feeder"
-        if(autoTimer.get() < SPINUP_Seconds){//Spinup the Launcher
+        if (autoTimer.get() < SPINUP_Seconds) {// Spinup the Launcher
           leftIntakeShootExpel.setVoltage(LAUNCHING_Left_Voltage);
           rightBinIntakeExpel.setVoltage(SPINUP_Right_Voltage);
-        }
-        else if(autoTimer.get() < SHOOT_Seconds){//Shoot
+        } else if (autoTimer.get() < SHOOT_Seconds) {// Shoot
           leftIntakeShootExpel.setVoltage(LAUNCHING_Left_Voltage);
           rightBinIntakeExpel.setVoltage(LAUNCHING_Right_Voltage);
-        }
-        else if(autoTimer.get() < SHOOT_Seconds + 1){//Move away from Hub
+        } else if (autoTimer.get() < SHOOT_Seconds + 1) {// Move away from Hub
           leftIntakeShootExpel.setVoltage(0);
           rightBinIntakeExpel.setVoltage(0);
           myDrive.tankDrive(.7, .7);
-        }
-        else if(autoTimer.get() < SHOOT_Seconds + 1.5){//Turn to Feeder
+        } else if (autoTimer.get() < SHOOT_Seconds + 1.5) {// Turn to Feeder
           leftIntakeShootExpel.setVoltage(0);
           rightBinIntakeExpel.setVoltage(0);
           myDrive.tankDrive(.4, -.4);
-        }
-        else if(autoTimer.get() < SHOOT_Seconds + 3){//Move to Feeder
+        } else if (autoTimer.get() < SHOOT_Seconds + 3) {// Move to Feeder
           leftIntakeShootExpel.setVoltage(0);
           rightBinIntakeExpel.setVoltage(0);
-
           myDrive.tankDrive(.7, .7);
-        }
-        else{
+        } else {
           leftIntakeShootExpel.setVoltage(0);
           rightBinIntakeExpel.setVoltage(0);
         }
         break;
 
-      case kLaunchFromEitherSide: // Routine: Set robot 30 inches to side of Hub, angled to point at Hub with outside corner at start line
-        if(autoTimer.get() < SPINUP_Seconds){//spinup the Launcher
+      case kLaunchFromEitherSide: // Routine: Set robot 30 inches to side of Hub, angled to point at Hub with
+                                  // outside corner at start line
+        if (autoTimer.get() < SPINUP_Seconds) {// spinup the Launcher
           leftIntakeShootExpel.setVoltage(LAUNCHING_Left_Voltage);
           rightBinIntakeExpel.setVoltage(SPINUP_Right_Voltage);
-        }
-        else if(autoTimer.get() < SHOOT_Seconds){
+        } else if (autoTimer.get() < SHOOT_Seconds) {
           leftIntakeShootExpel.setVoltage(LAUNCHING_Left_Voltage);
           rightBinIntakeExpel.setVoltage(LAUNCHING_Right_Voltage);
-        }
-        else{
+        } else {
           leftIntakeShootExpel.setVoltage(0);
           rightBinIntakeExpel.setVoltage(0);
         }
@@ -264,25 +280,23 @@ public class Robot extends TimedRobot {
 
       case kDefaultAuto: // This has several item tests commented out followed by Default routine starting centered on Hub
       default:
-      
-        //leftForwardDriveLead.set(.35);
-        //leftBackDriveFollower.set(.35);
-        //rightForwardDriveLead.set(.35);
-        //rightBackDriveFollower.set(.35);
-        //rightShooterFeeder.set(.7);
-        //leftShooterIntakeShooter.set(.97);
-       
-        if(autoTimer.get() < SPINUP_Seconds - 0.5){//spinup the Launcher
+
+        // leftForwardDriveLead.set(.35);
+        // leftBackDriveFollower.set(.35);
+        // rightForwardDriveLead.set(.35);
+        // rightBackDriveFollower.set(.35);
+        // rightShooterFeeder.set(.7);
+        // leftShooterIntakeShooter.set(.97);
+
+        if (autoTimer.get() < SPINUP_Seconds - 0.5) {// spinup the Launcher
           leftIntakeShootExpel.setVoltage(LAUNCHING_Left_Voltage);
           rightBinIntakeExpel.setVoltage(SPINUP_Right_Voltage);
-          myDrive.tankDrive(-.4,-.4);
-        }
-          else if(autoTimer.get() < SHOOT_Seconds){
+          myDrive.tankDrive(-.4, -.4);
+        } else if (autoTimer.get() < SHOOT_Seconds) {
           leftIntakeShootExpel.setVoltage(LAUNCHING_Left_Voltage);
           rightBinIntakeExpel.setVoltage(LAUNCHING_Right_Voltage);
-          myDrive.tankDrive(.0,.0);
-        }
-          else{
+          myDrive.tankDrive(.0, .0);
+        } else {
           leftIntakeShootExpel.setVoltage(12);
           rightBinIntakeExpel.setVoltage(0);
           myDrive.tankDrive(0, 0);
@@ -291,94 +305,99 @@ public class Robot extends TimedRobot {
     }
   }
 
-  /** This function is called once when teleop is enabled. */
+  /* This function is called once when teleop is enabled. */
   @Override
   public void teleopInit() {
-    m_controllerSelected = m_controllerChooser.getSelected();
-    // m_autoSelected = SmartDashboard.getString("Auto Selector", kDefaultAuto);
-    System.out.println("Final Controller mode selection: " + m_controllerSelected);
-   // if (m_autoSelected == kControllerArcade) {
-   //     scrollCyanPurple.blink(Seconds.of(LEDBlinkingRate)).applyTo(m_ledBuffer);
-   // } else {
-   //   scrollCyanPurple.applyTo(m_ledBuffer);
-   // }
-    
+    updateSelected();
+
     autoTimer.stop();
     spinUpTimer.start();
   }
-    
-  /** This function is called periodically during operator control. */
+
+  /* This function is called periodically during operator control. */
   @Override
   public void teleopPeriodic() {
-  //---------------------------------Drive Mechanisme...Driver...............................................
-    if(driverController.getLeftBumperButton()){  // slow mode
+    if (m_autoSelected == kControllerArcade) {
+      scrollRainbowBlink.applyTo(m_ledBuffer);
+    } else {
+      scrollRainbow.applyTo(m_ledBuffer);
+    }
+    m_led.setData(m_ledBuffer);
+    // ---------------------------------Drive Mechanisme...Driver...............................................
+    if (driverController.getLeftBumperButton()) { // slow mode
       driveSpeed = 0.5;
       rotateSpeed = 0.6;
-    }
-    else {
+    } else {
       driveSpeed = 0.7;
       rotateSpeed = 0.7;
     }
-  
-   if (m_controllerSelected == kControllerTank) { //get value that is set from smartDashBoard
-    myDrive.tankDrive(driverController.getLeftY() * driveSpeed, driverController.getRightY() * driveSpeed);
-   } else {
-    myDrive.arcadeDrive(driverController.getLeftY() * driveSpeed, driverController.getRightX() * rotateSpeed);
-   }
 
-  //---------------------------------Fuel Mechanism...Fuel Operator----------------------------------------
-    if(opController.getRightBumperButton()){ // press Right Bumper to launch fuel
-      if(opController.getRightBumperButtonPressed()){
-        spinUpTimer.reset();
-      }
-      if(spinUpTimer.get() < SPINUP_Seconds){ // spinning up the Launcher
-        leftIntakeShootExpel.setVoltage(LAUNCHING_Left_Voltage);
-        rightBinIntakeExpel.setVoltage(SPINUP_Right_Voltage);
-      }
-      else{
-      leftIntakeShootExpel.setVoltage(LAUNCHING_Left_Voltage);
-      rightBinIntakeExpel.setVoltage(LAUNCHING_Right_Voltage);
-      }
+    if (m_controllerSelected == kControllerTank) { // get value that is set from smartDashBoard
+      myDrive.tankDrive(driverController.getLeftY() * driveSpeed, driverController.getRightY() * driveSpeed);
+    } else {
+      myDrive.arcadeDrive(driverController.getLeftY() * driveSpeed, driverController.getRightX() * rotateSpeed);
     }
-    else if(opController.getAButton()){ // press A toggle to Intake fuel from Floor
-      leftIntakeShootExpel.setVoltage(INTAKING_Left_Voltage);
-      rightBinIntakeExpel.setVoltage(INTAKING_Right_Voltage);
-    }
-    else if(opController.getYButton()){ // press Y toggle to Expel fuel
-      leftIntakeShootExpel.setVoltage(-INTAKING_Left_Voltage);
-      rightBinIntakeExpel.setVoltage(-INTAKING_Right_Voltage);
-    }
-    else{ // turn stuff off
+
+    // ---------------------------------Fuel Mechanism...Fuel Operator----------------------------------------
+    if (driverController.getYButton()) { // stop them from doing things that they shouldn't
+      if (opController.getRightBumperButton()) { // press Right Bumper to launch fuel
+        if (opController.getRightBumperButtonPressed()) {
+          spinUpTimer.reset();
+        }
+        if (spinUpTimer.get() < SPINUP_Seconds) { // spinning up the Launcher
+          leftIntakeShootExpel.setVoltage(LAUNCHING_Left_Voltage);
+          rightBinIntakeExpel.setVoltage(SPINUP_Right_Voltage);
+        } else {
+          leftIntakeShootExpel.setVoltage(LAUNCHING_Left_Voltage);
+          rightBinIntakeExpel.setVoltage(LAUNCHING_Right_Voltage);
+        }
+      } else if (opController.getAButton()) { // press A toggle to Intake fuel from Floor
+        leftIntakeShootExpel.setVoltage(INTAKING_Left_Voltage);
+        rightBinIntakeExpel.setVoltage(INTAKING_Right_Voltage);
+      } else if (opController.getYButton()) { // press Y toggle to Expel fuel
+        leftIntakeShootExpel.setVoltage(-INTAKING_Left_Voltage);
+        rightBinIntakeExpel.setVoltage(-INTAKING_Right_Voltage);
+      } else { // turn stuff off
+        leftIntakeShootExpel.setVoltage(0);
+        rightBinIntakeExpel.setVoltage(0);
+      }
+    } else {
       leftIntakeShootExpel.setVoltage(0);
       rightBinIntakeExpel.setVoltage(0);
     }
-  } 
-    
+  }
+
   /** This function is called once when the robot is disabled. */
   @Override
-  public void disabledInit() {}
+  public void disabledInit() {
+  }
 
   /** This function is called periodically when disabled. */
   @Override
   public void disabledPeriodic() {
-    updateLEDsAndSelected();
+    updateSelected();
+    updateLEDS();
   }
 
   /** This function is called once when test mode is enabled. */
   @Override
-  public void testInit() {}
+  public void testInit() {
+  }
 
   /** This function is called periodically during test mode. */
   @Override
-  public void testPeriodic() {}
+  public void testPeriodic() {
+  }
 
   /** This function is called once when the robot is first started up. */
   @Override
-  public void simulationInit() {}
+  public void simulationInit() {
+  }
 
   /** This function is called periodically whilst in simulation. */
   @Override
-  public void simulationPeriodic() {}
+  public void simulationPeriodic() {
+  }
 
   public static String getKdefaultauto() {
     return kDefaultAuto;
@@ -403,6 +422,7 @@ public class Robot extends TimedRobot {
   public SendableChooser<String> getM_chooser() {
     return m_chooser;
   }
+
   public SparkMax getLeftForwardDriveLead() {
     return leftForwardDriveLead;
   }
@@ -475,48 +495,47 @@ public class Robot extends TimedRobot {
     return SHOOT_Seconds;
   }
 
-  public void updateLEDsAndSelected() {
+  public void updateSelected() {
     if (m_autoSelected != m_chooser.getSelected() || m_controllerSelected != m_controllerChooser.getSelected()) { // if any mode changes
-      m_autoSelected = m_chooser.getSelected(); 
+      m_autoSelected = m_chooser.getSelected();
       m_controllerSelected = m_controllerChooser.getSelected();
       System.out.println("Auto mode selected: " + m_autoSelected);
-      System.out.println("Controller mode selected: " + m_controllerSelected); 
-     // if (m_controllerSelected == kControllerArcade) { // if controller is arcade, start blinking
-     /*    LEDPattern pattern;
-       switch (m_autoSelected) {
-          case kLaunchRight:
-            pattern = green.blink(Seconds.of(LEDBlinkingRate));
-            break;
-          case kLaunchLeft:
-            pattern = blue.blink(Seconds.of(LEDBlinkingRate));
-            break;
-          case kLaunchFromEitherSide:
-            pattern = purple.blink(Seconds.of(LEDBlinkingRate));
-            break;
-          default:
-            pattern = red.blink(Seconds.of(LEDBlinkingRate));
-            break;
-        }
-        pattern.applyTo(m_ledBuffer);
-
-      } else { // if controller is tank, don't blink
-        switch (m_autoSelected) {
-          case kLaunchRight:
-            green.applyTo(m_ledBuffer);
-            break;
-          case kLaunchLeft:
-            blue.applyTo(m_ledBuffer);
-            break;
-          case kLaunchFromEitherSide:
-            purple.applyTo(m_ledBuffer);
-            break;
-          default:
-            red.applyTo(m_ledBuffer);
-            break;
-        }
-      }
-    } */
+      System.out.println("Controller mode selected: " + m_controllerSelected);
     }
   }
-}
 
+  private void updateLEDS() {
+    if (m_controllerSelected == kControllerArcade) { // if controller is arcade, start blinking
+      switch (m_autoSelected) {
+        case kLaunchRight:
+          greenBlink.applyTo(m_ledBuffer);
+          break;
+        case kLaunchLeft:
+          blueBlink.applyTo(m_ledBuffer);
+          break;
+        case kLaunchFromEitherSide:
+          purpleBlink.applyTo(m_ledBuffer);
+          break;
+        default:
+          redBlink.applyTo(m_ledBuffer);
+          break;
+      }
+    } else { // if controller is tank, don't blink
+      switch (m_autoSelected) {
+        case kLaunchRight:
+          green.applyTo(m_ledBuffer);
+          break;
+        case kLaunchLeft:
+          blue.applyTo(m_ledBuffer);
+          break;
+        case kLaunchFromEitherSide:
+          purple.applyTo(m_ledBuffer);
+          break;
+        default:
+          red.applyTo(m_ledBuffer);
+          break;
+      }
+    }
+    m_led.setData(m_ledBuffer);
+  }
+}
