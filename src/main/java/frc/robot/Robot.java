@@ -293,7 +293,13 @@ public class Robot extends TimedRobot {
         } else if (autoTimer.get() < SHOOT_Seconds) {
           leftIntakeShootExpel.setVoltage(LAUNCHING_Left_Voltage);
           rightBinIntakeExpel.setVoltage(LAUNCHING_Right_Voltage);
-          myDrive.tankDrive(.0, .0);
+          if (autoTimer.get() > 6 && autoTimer.get() < 6.4) {
+            myDrive.tankDrive(-.7, -.7); //shake forward
+          } else if (autoTimer.get() > 6.4 && autoTimer.get() < 6.8) {
+            myDrive.tankDrive(.7, .7); //shake backward
+          } else {
+            myDrive.tankDrive(.0, .0); //stop
+          }
         } else {
           leftIntakeShootExpel.setVoltage(0);
           rightBinIntakeExpel.setVoltage(0);
