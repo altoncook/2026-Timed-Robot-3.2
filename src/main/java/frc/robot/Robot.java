@@ -80,7 +80,7 @@ public class Robot extends TimedRobot {
       .atBrightness(Dimensionless.ofRelativeUnits(LED_BRIGHTNESS_PERCENT, Percent)); // Used for launch right
   private final LEDPattern purple = LEDPattern.solid(Color.kCyan)
       .atBrightness(Dimensionless.ofRelativeUnits(LED_BRIGHTNESS_PERCENT, Percent)); // Used for launch either side
-  private final LEDPattern scrollTeleOp = LEDPattern.gradient(GradientType.kDiscontinuous, Color.kBlue, Color.kYellow)
+  private final LEDPattern scrollTeleOp = LEDPattern.gradient(GradientType.kDiscontinuous, Color.kNavy, Color.kGold)
       .scrollAtRelativeSpeed(Percent.per(Second).of(LED_SCROLL_SPEED))
       .atBrightness(Dimensionless.ofRelativeUnits(LED_BRIGHTNESS_PERCENT, Percent)); // Used for teleop, just to look cool
 
@@ -199,15 +199,15 @@ public class Robot extends TimedRobot {
         } else if (autoTimer.get() < SHOOT_SECONDS + 1) {// Move away from Hub
           leftIntakeShootExpel.setVoltage(0);
           rightBinIntakeExpel.setVoltage(0);
-          myDrive.tankDrive(.7, .7);
+          myDrive.tankDrive(-.7, -.7);
         } else if (autoTimer.get() < SHOOT_SECONDS + 1.5) {// Turn to Feeder
           leftIntakeShootExpel.setVoltage(0);
           rightBinIntakeExpel.setVoltage(0);
-          myDrive.tankDrive(-.4, .4);
+          myDrive.tankDrive(.4, -.4);
         } else if (autoTimer.get() < SHOOT_SECONDS + 3) {// Move to Feeder
           leftIntakeShootExpel.setVoltage(0);
           rightBinIntakeExpel.setVoltage(0);
-          myDrive.tankDrive(.7, .7);
+          myDrive.tankDrive(-.7, -.7);
         } else {
           leftIntakeShootExpel.setVoltage(0);
           rightBinIntakeExpel.setVoltage(0);
@@ -224,15 +224,15 @@ public class Robot extends TimedRobot {
         } else if (autoTimer.get() < SHOOT_SECONDS + 1) {// Move away from Hub
           leftIntakeShootExpel.setVoltage(0);
           rightBinIntakeExpel.setVoltage(0);
-          myDrive.tankDrive(.7, .7);
+          myDrive.tankDrive(-.7, -.7);
         } else if (autoTimer.get() < SHOOT_SECONDS + 1.5) {// Turn to Feeder
           leftIntakeShootExpel.setVoltage(0);
           rightBinIntakeExpel.setVoltage(0);
-          myDrive.tankDrive(.4, -.4);
+          myDrive.tankDrive(-.4, .4);
         } else if (autoTimer.get() < SHOOT_SECONDS + 3) {// Move to Feeder
           leftIntakeShootExpel.setVoltage(0);
           rightBinIntakeExpel.setVoltage(0);
-          myDrive.tankDrive(.7, .7);
+          myDrive.tankDrive(-.7, -.7);
         } else {
           leftIntakeShootExpel.setVoltage(0);
           rightBinIntakeExpel.setVoltage(0);
@@ -244,8 +244,13 @@ public class Robot extends TimedRobot {
           leftIntakeShootExpel.setVoltage(LAUNCHING_LEFT_VOLTAGE);
           rightBinIntakeExpel.setVoltage(SPINUP_RIGHT_VOLTAGE);
         } else if (autoTimer.get() < SHOOT_SECONDS) {
-          leftIntakeShootExpel.setVoltage(LAUNCHING_LEFT_VOLTAGE);
-          rightBinIntakeExpel.setVoltage(LAUNCHING_RIGHT_VOLTAGE);
+          if (autoTimer.get() > 6 && autoTimer.get() < 6.4) {
+            leftIntakeShootExpel.setVoltage(-LAUNCHING_LEFT_VOLTAGE);
+            rightBinIntakeExpel.setVoltage(-LAUNCHING_RIGHT_VOLTAGE);
+          } else {
+            leftIntakeShootExpel.setVoltage(LAUNCHING_LEFT_VOLTAGE);
+            rightBinIntakeExpel.setVoltage(LAUNCHING_RIGHT_VOLTAGE);
+          }
         } else {
           leftIntakeShootExpel.setVoltage(0);
           rightBinIntakeExpel.setVoltage(0);
@@ -265,17 +270,16 @@ public class Robot extends TimedRobot {
         if (autoTimer.get() < SPINUP_SECONDS - 0.5) {// spinup the Launcher
           leftIntakeShootExpel.setVoltage(LAUNCHING_LEFT_VOLTAGE);
           rightBinIntakeExpel.setVoltage(SPINUP_RIGHT_VOLTAGE);
-          myDrive.tankDrive(-.4, -.4);
+          myDrive.tankDrive(-.5, -.5);
         } else if (autoTimer.get() < SHOOT_SECONDS) {
-          leftIntakeShootExpel.setVoltage(LAUNCHING_LEFT_VOLTAGE);
-          rightBinIntakeExpel.setVoltage(LAUNCHING_RIGHT_VOLTAGE);
           if (autoTimer.get() > 6 && autoTimer.get() < 6.4) {
-            myDrive.tankDrive(-.7, -.7); //shake forward
-          } else if (autoTimer.get() > 6.4 && autoTimer.get() < 6.8) {
-            myDrive.tankDrive(.7, .7); //shake backward
+            leftIntakeShootExpel.setVoltage(-LAUNCHING_LEFT_VOLTAGE);
+            rightBinIntakeExpel.setVoltage(-LAUNCHING_RIGHT_VOLTAGE);
           } else {
-            myDrive.tankDrive(.0, .0); //stop
+            leftIntakeShootExpel.setVoltage(LAUNCHING_LEFT_VOLTAGE);
+            rightBinIntakeExpel.setVoltage(LAUNCHING_RIGHT_VOLTAGE);
           }
+          myDrive.tankDrive(.0, .0); //stop 
         } else {
           leftIntakeShootExpel.setVoltage(0);
           rightBinIntakeExpel.setVoltage(0);
@@ -469,8 +473,8 @@ public class Robot extends TimedRobot {
   public void updateSelected() { // Only run when starting a mode, not during.
     m_autoSelected = m_chooser.getSelected();
     m_controllerSelected = m_controllerChooser.getSelected();
-    System.out.println("Auto mode selected: " + m_autoSelected);
-    System.out.println("Controller mode selected: " + m_controllerSelected);
+  //  System.out.println("Auto mode selected: " + m_autoSelected);
+  //  System.out.println("Controller mode selected: " + m_controllerSelected);
   }
 
   private void updateLEDS() {

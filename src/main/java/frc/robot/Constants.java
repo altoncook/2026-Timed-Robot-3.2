@@ -43,7 +43,7 @@ public final class Constants {
     // Sets scale value for controller movement, only arcade uses rotation scale
     public static final double SLOW_DRIVE_SCALE = .5;
     public static final double SLOW_ROTATION_SCALE = .6;
-    public static final double DRIVE_SCALE = .7;
+    public static final double DRIVE_SCALE = .78;
     public static final double ROTATION_SCALE = .7;
   }
 
