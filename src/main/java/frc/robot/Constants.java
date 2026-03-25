@@ -20,8 +20,8 @@ public final class Constants {
     public static final int RIGHT_LAUNCH_MOTOR_ID = 3;
 
     // Current limit and nominal voltage for fuel mechanism motors
-    public static final int FEEDER_MOTOR_CURRENT_LIMIT = 60;
-    public static final int LAUNCHER_MOTOR_CURRENT_LIMIT = 60;
+    public static final int LEFT_LAUNCH_CURRENT_LIMIT = 60;
+    public static final int RIGHT_LAUNCH_CURRENT_LIMIT = 60;
 
     // Voltages for fuel stages
     public static final double SPINUP_LEFT_VOLTAGE = 1;
@@ -33,6 +33,15 @@ public final class Constants {
     
     public static final double SPINUP_SECONDS = 1;
     public static final double SHOOT_SECONDS = 11; // this is includes the SPINUP time for an actual (SHOOT minus SPINUP) seconds
+  }
+
+  public static final class ClimbConstants {
+    public static final int CLIMB_MOTOR_ID = 8; // make sure the can is set to id 8 or it won't work
+
+    // if the motor is going down when it should be going up, filp up and down voltages
+    public static final double CLIMB_MOTOR_VOLTAGE = 5; // must be a number between -12 and 12
+
+    public static final int CLIMB_CURRENT_LIMIT = 40; //change this value only if needed and if the motor is stalling too early (make larger) or too late (make smaller) 
   }
 
   public static final class OperatorConstants {

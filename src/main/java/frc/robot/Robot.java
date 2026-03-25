@@ -31,6 +31,7 @@ import static edu.wpi.first.units.Units.Seconds;
 import static frc.robot.Constants.LEDConstants.*;
 import static frc.robot.Constants.DriveConstants.*;
 import static frc.robot.Constants.FuelConstants.*;
+import static frc.robot.Constants.ClimbConstants.*;
 import static frc.robot.Constants.OperatorConstants.*;
 
 /**
@@ -59,6 +60,8 @@ public class Robot extends TimedRobot {
   private final SparkMax rightBackDriveFollower = new SparkMax(RIGHT_BACK_ID, MotorType.kBrushed);
   private final SparkMax leftIntakeShootExpel = new SparkMax(LEFT_LAUNCH_MOTOR_ID, MotorType.kBrushed);
   private final SparkMax rightBinIntakeExpel = new SparkMax(RIGHT_LAUNCH_MOTOR_ID, MotorType.kBrushed);
+
+  private final SparkMax climbMotor = new SparkMax(CLIMB_MOTOR_ID, MotorType.kBrushed);
 
   private final DifferentialDrive myDrive = new DifferentialDrive(leftForwardDriveLead, rightForwardDriveLead);
 
@@ -136,13 +139,18 @@ public class Robot extends TimedRobot {
 
     // --------------------Shooter Configs-------------------------------------
     SparkMaxConfig leftConfig = new SparkMaxConfig();
-    leftConfig.smartCurrentLimit(60);
+    leftConfig.smartCurrentLimit(LEFT_LAUNCH_CURRENT_LIMIT);
     leftConfig.inverted(false);
     leftIntakeShootExpel.configure(leftConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
     SparkMaxConfig rightConfig = new SparkMaxConfig();
-    rightConfig.smartCurrentLimit(60);
+    rightConfig.smartCurrentLimit(RIGHT_LAUNCH_CURRENT_LIMIT);
     rightConfig.inverted(false);
     rightBinIntakeExpel.configure(rightConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+    // --------------------Climbing Configs-------------------------------------
+    SparkMaxConfig climbConfig = new SparkMaxConfig();
+    climbConfig.smartCurrentLimit(CLIMB_CURRENT_LIMIT);
+    rightConfig.inverted(false);
+    climbMotor.configure(climbConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
   }
 
   /**
@@ -340,6 +348,19 @@ public class Robot extends TimedRobot {
         leftIntakeShootExpel.setVoltage(0);
         rightBinIntakeExpel.setVoltage(0);
       }
+    // ---------------------------------Climb Mechanism...Fuel Operator----------------------------------------
+      if (opController.getPOV() != -1) { // if dpad is pressed
+        if (opController.getPOV() <= 45 || opController.getPOV() >= 315) { // if d pad is pressed in the up direction
+          climbMotor.setVoltage(CLIMB_MOTOR_VOLTAGE);
+        } else if (opController.getPOV() <= 225 || opController.getPOV() >= 135) { // if d pad is pressed in the down direction
+          climbMotor.setVoltage(-CLIMB_MOTOR_VOLTAGE);
+        }
+      } else {
+        climbMotor.setVoltage(0);
+      }
+    
+    
+
   }
 
   /** This function is called once when the robot is disabled. */
