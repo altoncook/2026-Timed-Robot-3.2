@@ -354,6 +354,8 @@ public class Robot extends TimedRobot {
           climbMotor.setVoltage(CLIMB_MOTOR_VOLTAGE);
         } else if (opController.getPOV() <= 225 || opController.getPOV() >= 135) { // if d pad is pressed in the down direction
           climbMotor.setVoltage(-CLIMB_MOTOR_VOLTAGE);
+        } else {
+          climbMotor.setVoltage(0);
         }
       } else {
         climbMotor.setVoltage(0);
