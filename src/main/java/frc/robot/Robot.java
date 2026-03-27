@@ -11,6 +11,7 @@ import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.SparkMaxConfig;
 
 import edu.wpi.first.cameraserver.CameraServer;
+import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.units.measure.Dimensionless;
 import edu.wpi.first.wpilibj.AddressableLED;
 import edu.wpi.first.wpilibj.AddressableLEDBuffer;
@@ -31,7 +32,6 @@ import static edu.wpi.first.units.Units.Seconds;
 import static frc.robot.Constants.LEDConstants.*;
 import static frc.robot.Constants.DriveConstants.*;
 import static frc.robot.Constants.FuelConstants.*;
-import static frc.robot.Constants.ClimbConstants.*;
 import static frc.robot.Constants.OperatorConstants.*;
 
 /**
@@ -61,12 +61,15 @@ public class Robot extends TimedRobot {
   private final SparkMax leftIntakeShootExpel = new SparkMax(LEFT_LAUNCH_MOTOR_ID, MotorType.kBrushed);
   private final SparkMax rightBinIntakeExpel = new SparkMax(RIGHT_LAUNCH_MOTOR_ID, MotorType.kBrushed);
 
-  private final SparkMax climbMotor = new SparkMax(CLIMB_MOTOR_ID, MotorType.kBrushed);
-
   private final DifferentialDrive myDrive = new DifferentialDrive(leftForwardDriveLead, rightForwardDriveLead);
 
   private double m_driveScale;
   private double m_rotateScale;
+
+  // slew rate limiters stop a value from increasing more then the value set
+  private SlewRateLimiter tankLeftFilter = new SlewRateLimiter(TANK_DRIVE_CONTROLLER_DAMPING);
+  private SlewRateLimiter tankRightFilter = new SlewRateLimiter(TANK_DRIVE_CONTROLLER_DAMPING);
+  private SlewRateLimiter arcadeFilter = new SlewRateLimiter(ARCADE_DRIVE_CONTROLLER_DAMPING);
 
   private final Timer autoTimer = new Timer();
   private final Timer spinUpTimer = new Timer();
@@ -74,7 +77,7 @@ public class Robot extends TimedRobot {
   private final XboxController driverController = new XboxController(DRIVER_CONTROLLER_PORT);
   private final XboxController opController = new XboxController(OPERATOR_CONTROLLER_PORT);
 
-  // the LED strip that we use has a grb setup and not a rgb setup, so flip green and red values
+  // the LED strip that we use has a grb setup, so flip green and red values
   private final LEDPattern red = LEDPattern.solid(Color.kGreen)
       .atBrightness(Dimensionless.ofRelativeUnits(LED_BRIGHTNESS_PERCENT, Percent)); // Used for launch default
   private final LEDPattern green = LEDPattern.solid(Color.kRed)
@@ -146,11 +149,6 @@ public class Robot extends TimedRobot {
     rightConfig.smartCurrentLimit(RIGHT_LAUNCH_CURRENT_LIMIT);
     rightConfig.inverted(false);
     rightBinIntakeExpel.configure(rightConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
-    // --------------------Climbing Configs-------------------------------------
-    SparkMaxConfig climbConfig = new SparkMaxConfig();
-    climbConfig.smartCurrentLimit(CLIMB_CURRENT_LIMIT);
-    rightConfig.inverted(false);
-    climbMotor.configure(climbConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
   }
 
   /**
@@ -158,7 +156,6 @@ public class Robot extends TimedRobot {
    * like diagnostics
    * that you want ran during disabled, autonomous, teleoperated and test.
    *
-   * <p>
    * This runs after the mode specific periodic functions, but before LiveWindow
    * and
    * SmartDashboard integrated updating.
@@ -177,7 +174,6 @@ public class Robot extends TimedRobot {
    * uncomment the getString line to get the auto name from the text box below the
    * Gyro
    *
-   * <p>
    * You can add additional auto modes by adding additional comparisons to the
    * switch structure
    * below with additional strings. If using the SendableChooser make sure to add
@@ -287,7 +283,7 @@ public class Robot extends TimedRobot {
             leftIntakeShootExpel.setVoltage(LAUNCHING_LEFT_VOLTAGE);
             rightBinIntakeExpel.setVoltage(LAUNCHING_RIGHT_VOLTAGE);
           }
-          myDrive.tankDrive(.0, .0); //stop 
+          myDrive.tankDrive(.0, .0); // stop
         } else {
           leftIntakeShootExpel.setVoltage(0);
           rightBinIntakeExpel.setVoltage(0);
@@ -321,48 +317,39 @@ public class Robot extends TimedRobot {
     }
 
     if (m_controllerSelected == kControllerTank) { // get value that is set from smartDashBoard
-      myDrive.tankDrive(driverController.getLeftY() * m_driveScale, driverController.getRightY() * m_driveScale);
+      if (USE_DRIVE_DAMPING)
+        myDrive.tankDrive(tankLeftFilter.calculate(driverController.getLeftY()) * m_driveScale, tankRightFilter.calculate(driverController.getRightY()) * m_driveScale);
+       else 
+        myDrive.tankDrive(driverController.getLeftY() * m_driveScale, driverController.getRightY() * m_driveScale);
     } else {
-      myDrive.arcadeDrive(driverController.getLeftY() * m_driveScale, driverController.getRightX() * m_rotateScale);
+      if (USE_DRIVE_DAMPING)
+        myDrive.arcadeDrive(arcadeFilter.calculate(driverController.getLeftY()) * m_driveScale, driverController.getRightX() * m_rotateScale);
+      else 
+        myDrive.arcadeDrive(driverController.getLeftY() * m_driveScale, driverController.getRightX() * m_rotateScale);
     }
 
     // ---------------------------------Fuel Mechanism...Fuel Operator----------------------------------------
-      if (opController.getRightBumperButton()) { // press Right Bumper to launch fuel
-        if (opController.getRightBumperButtonPressed()) {
-          spinUpTimer.reset();
-        }
-        if (spinUpTimer.get() < SPINUP_SECONDS) { // spinning up the Launcher
-          leftIntakeShootExpel.setVoltage(LAUNCHING_LEFT_VOLTAGE);
-          rightBinIntakeExpel.setVoltage(SPINUP_RIGHT_VOLTAGE);
-        } else {
-          leftIntakeShootExpel.setVoltage(LAUNCHING_LEFT_VOLTAGE);
-          rightBinIntakeExpel.setVoltage(LAUNCHING_RIGHT_VOLTAGE);
-        }
-      } else if (opController.getAButton()) { // press A to Intake fuel from Floor
-        leftIntakeShootExpel.setVoltage(INTAKING_LEFT_VOLTAGE);
-        rightBinIntakeExpel.setVoltage(INTAKING_RIGHT_VOLTAGE);
-      } else if (opController.getYButton()) { // press Y to Expel fuel
-        leftIntakeShootExpel.setVoltage(-INTAKING_LEFT_VOLTAGE);
-        rightBinIntakeExpel.setVoltage(-INTAKING_RIGHT_VOLTAGE);
-      } else { // turn stuff off if nothing is pressed
-        leftIntakeShootExpel.setVoltage(0);
-        rightBinIntakeExpel.setVoltage(0);
+    if (opController.getRightBumperButton()) { // press Right Bumper to launch fuel
+      if (opController.getRightBumperButtonPressed()) {
+        spinUpTimer.reset();
       }
-    // ---------------------------------Climb Mechanism...Fuel Operator----------------------------------------
-      if (opController.getPOV() != -1) { // if dpad is pressed
-        if (opController.getPOV() <= 45 || opController.getPOV() >= 315) { // if d pad is pressed in the up direction
-          climbMotor.setVoltage(CLIMB_MOTOR_VOLTAGE);
-        } else if (opController.getPOV() <= 225 || opController.getPOV() >= 135) { // if d pad is pressed in the down direction
-          climbMotor.setVoltage(-CLIMB_MOTOR_VOLTAGE);
-        } else {
-          climbMotor.setVoltage(0);
-        }
+      if (spinUpTimer.get() < SPINUP_SECONDS) { // spinning up the Launcher
+        leftIntakeShootExpel.setVoltage(LAUNCHING_LEFT_VOLTAGE);
+        rightBinIntakeExpel.setVoltage(SPINUP_RIGHT_VOLTAGE);
       } else {
-        climbMotor.setVoltage(0);
+        leftIntakeShootExpel.setVoltage(LAUNCHING_LEFT_VOLTAGE);
+        rightBinIntakeExpel.setVoltage(LAUNCHING_RIGHT_VOLTAGE);
       }
-    
-    
-
+    } else if (opController.getAButton()) { // press A to Intake fuel from Floor
+      leftIntakeShootExpel.setVoltage(INTAKING_LEFT_VOLTAGE);
+      rightBinIntakeExpel.setVoltage(INTAKING_RIGHT_VOLTAGE);
+    } else if (opController.getYButton()) { // press Y to Expel fuel
+      leftIntakeShootExpel.setVoltage(-INTAKING_LEFT_VOLTAGE);
+      rightBinIntakeExpel.setVoltage(-INTAKING_RIGHT_VOLTAGE);
+    } else { // turn stuff off if nothing is pressed
+      leftIntakeShootExpel.setVoltage(0);
+      rightBinIntakeExpel.setVoltage(0);
+    }
   }
 
   /** This function is called once when the robot is disabled. */
@@ -496,8 +483,8 @@ public class Robot extends TimedRobot {
   public void updateSelected() { // Only run when starting a mode, not during.
     m_autoSelected = m_chooser.getSelected();
     m_controllerSelected = m_controllerChooser.getSelected();
-  //  System.out.println("Auto mode selected: " + m_autoSelected);
-  //  System.out.println("Controller mode selected: " + m_controllerSelected);
+    // System.out.println("Auto mode selected: " + m_autoSelected);
+    // System.out.println("Controller mode selected: " + m_controllerSelected);
   }
 
   private void updateLEDS() {
